@@ -46,7 +46,7 @@ def tokenize(sentences):
 
 # cargar un conjunto de datos limpio
 def load_clean_sentences(filename):
- return load(open(filename,'rb'))
+    return load(open(filename,'rb'))
 
 # guardar una lista de oraciones limpias para archivar
 def save_clean_data(sentences, filename):
@@ -55,11 +55,11 @@ def save_clean_data(sentences, filename):
 
 def main():
     # cargar conjunto de datos
-    filename ='../data/spa.txt'
+    filename ='./data/spa.txt'
 
     if len(sys.argv) > 1:
         size = int(sys.argv[1])
-    else :
+    else:
         size = 5000
 
     pares = obtener_pares(filename,size)
