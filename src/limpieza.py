@@ -1,3 +1,15 @@
+# Datasets
+# http://www.manythings.org/anki/
+# https://tatoeba.org/es/downloads
+# https://www.aprendemachinelearning.com/una-sencilla-red-neuronal-en-python-con-keras-y-tensorflow/
+
+# Ejemplos
+# https://unipython.com/proyecto-desarrollar-un-modelo-de-traduccion-automatica-neuronal/
+# https://www.ibidemgroup.com/edu/traduccion-automatica-texto-python/
+# https://www.statmt.org/wmt19/translation-task.html#download
+# https://www.kaggle.com/code/sharanharsoor/spanish-to-english-translation
+# https://medium.com/@magodiasanket/implementation-of-neural-machine-translation-using-python-82f8f3b3e4f1
+
 import os,io,sys
 import re
 import numpy as np
@@ -84,6 +96,9 @@ def load_data(file_path, size=None):
         pairs.append(line.split('\t'))
         if size is not None and i >= size:
             break
+  
+    # Eliminar las demas columnas y solo dejar la primera y la segunda de cada elemento de pairs
+    pairs = [pair[:2] for pair in pairs]
 
     # lines =  # split the text into lines separated by newline # Insert Code Here ----
     # pairs =  # split each line into source and target using tabs # Insert Code Here ----
@@ -135,79 +150,6 @@ def convert(lang, tensor):
     if t!=0:
       print ("%d ----> %s" % (t, lang.index_word[t]))
 
-if len(sys.argv) > 1:
-  size = int(sys.argv[1])
-else :
-  size = None
-
-file_path = "../data/spa.txt"
-
-src_sentences, tgt_sentences = load_data(file_path,size)
-#print("Original Sentence:",src_sentences[42])
-#print("Translated Sentence:",tgt_sentences[42])
-
-eng_len = []
-span_len = []
-
-# populate the lists with sentence lengths
-for i in src_sentences:
-    eng_len.append(len(i.split()))  
-
-for i in tgt_sentences:
-    span_len.append(len(i.split()))
-
-#length_df = pd.DataFrame({'english':eng_len, 'spanish':span_len})
-
-#print('Original sentence:',src_sentences[42])
-prc_src_sentences = [preprocess_text(w) for w in src_sentences]
-prc_tgt_sentences = [preprocess_text(w) for w in tgt_sentences]
-#print('Preprocessed sentence:',prc_src_sentences[42])
-
-src_sequences, tgt_sequences, src_lang_tokenizer, tgt_lang_tokenizer, max_length_src, max_length_trg = load_sequences(file_path,size)
-
-src_vocab_size = len(src_lang_tokenizer.word_index)+1 
-tgt_vocab_size = len(tgt_lang_tokenizer.word_index)+1 
-
-
-source_sequences_train,source_sequences_val,tgt_sequences_train,tgt_sequences_val = train_test_split(src_sequences, tgt_sequences, shuffle=False, test_size=0.2)
-
-
-#Defining hyperparameters
-buffer_size=len(source_sequences_train)
-val_buffer_size = len(source_sequences_val)
-BATCH_SIZE = 64
-embedding_dim = 128
-units = 1024 
-steps_per_epoch = buffer_size//BATCH_SIZE
-val_steps_per_epoch = val_buffer_size//BATCH_SIZE
-
-train_dataset = tf.data.Dataset.from_tensor_slices((source_sequences_train, tgt_sequences_train))
-
-train_dataset = train_dataset.shuffle(buffer_size=buffer_size).batch(BATCH_SIZE)
-
-val_dataset = tf.data.Dataset.from_tensor_slices((source_sequences_val, tgt_sequences_val))
-
-val_dataset = val_dataset.batch(BATCH_SIZE)
-
-example_input_batch, example_target_batch = next(iter(train_dataset))
-
-encoder = Encoder(src_vocab_size, embedding_dim, units, BATCH_SIZE) 
-
-sample_hidden = encoder.initialize_hidden_state()
-sample_output, sample_hidden = encoder(example_input_batch, sample_hidden)
-
-attention_layer = BahdanauAttention(20) 
-attention_result, attention_weights = attention_layer(sample_hidden, sample_output) 
-
-decoder = Decoder(tgt_vocab_size, embedding_dim, units, BATCH_SIZE)
-sample_decoder_output, _, _ = decoder(tf.random.uniform((BATCH_SIZE, 1)),
-                                      sample_hidden, sample_output)
-
-optimizer = tf.keras.optimizers.Adam() 
-
-loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
-    from_logits=True, reduction='none')  
-
 def loss_function(real, pred):
   mask = tf.math.logical_not(tf.math.equal(real, 0))  
   loss_ = loss_object(real, pred)  
@@ -216,13 +158,6 @@ def loss_function(real, pred):
   loss_ *= mask
 
   return tf.reduce_mean(loss_)
-
-
-checkpoint_dir = './training_checkpoints'  
-checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")  
-checkpoint = tf.train.Checkpoint(optimizer=optimizer,  
-                                 encoder=encoder,
-                                 decoder=decoder)
 
 @tf.function
 def train_step(inp, targ, enc_hidden):
@@ -291,12 +226,9 @@ def train_and_validate(train_dataset, val_dataset, EPOCHS=10):
         if (epoch + 1) % 2 == 0:
             checkpoint.save(file_prefix = checkpoint_prefix)
         
-        print('Total training loss is {:.4f}'.format(total_train_loss / steps_per_epoch))
-        print('Total validation loss is {:.4f}'.format( total_val_loss / val_steps_per_epoch))
+        #print('Total training loss is {:.4f}'.format(total_train_loss / steps_per_epoch))
+        #print('Total validation loss is {:.4f}'.format( total_val_loss / val_steps_per_epoch))
         print(f'Time taken for epoch {epoch} : {time.time() - start} sec\n')
-
-print("Training started...")
-train_and_validate(train_dataset, val_dataset)
 
 def plot_attention(attention, sentence, predicted_sentence):
   fig = plt.figure(figsize=(10, 10))
@@ -353,6 +285,57 @@ def translate(sentence):
   attention_plot = attention_plot[:len(result.split(' ')),
                                   :len(sentence.split(' '))]
   plot_attention(attention_plot, sentence.split(' '), result.split(' '))
+
+if len(sys.argv) > 1:
+  size = int(sys.argv[1])
+else :
+  size = 20000
+
+file_path = "../data/spa.txt"
+
+src_sequences, tgt_sequences, src_lang_tokenizer, tgt_lang_tokenizer, max_length_src, max_length_trg = load_sequences(file_path,size)
+
+src_vocab_size = len(src_lang_tokenizer.word_index)+1 
+tgt_vocab_size = len(tgt_lang_tokenizer.word_index)+1 
+
+source_sequences_train,source_sequences_val,tgt_sequences_train,tgt_sequences_val = train_test_split(src_sequences, tgt_sequences, shuffle=False, test_size=0.2)
+
+#Defining hyperparameters
+buffer_size=len(source_sequences_train)
+val_buffer_size = len(source_sequences_val)
+BATCH_SIZE = 64
+embedding_dim = 128
+units = 1024 
+steps_per_epoch = buffer_size//BATCH_SIZE
+val_steps_per_epoch = val_buffer_size//BATCH_SIZE
+
+train_dataset = tf.data.Dataset.from_tensor_slices((source_sequences_train, tgt_sequences_train))
+
+train_dataset = train_dataset.shuffle(buffer_size=buffer_size).batch(BATCH_SIZE)
+
+val_dataset = tf.data.Dataset.from_tensor_slices((source_sequences_val, tgt_sequences_val))
+
+val_dataset = val_dataset.batch(BATCH_SIZE)
+
+encoder = Encoder(src_vocab_size, embedding_dim, units, BATCH_SIZE) 
+
+attention_layer = BahdanauAttention(20) 
+
+decoder = Decoder(tgt_vocab_size, embedding_dim, units, BATCH_SIZE)
+
+optimizer = tf.keras.optimizers.Adam() 
+
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+    from_logits=True, reduction='none')  
+
+checkpoint_dir = './training_checkpoints'  
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")  
+checkpoint = tf.train.Checkpoint(optimizer=optimizer,  
+                                 encoder=encoder,
+                                 decoder=decoder)
+
+print("Training started...")
+train_and_validate(train_dataset, val_dataset)
 
 checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
