@@ -1,12 +1,17 @@
 from entrenamiento import Encoder, Decoder
 from limpieza import load_clean_sentences, tokenize, preprocess_text
 import tensorflow as tf
-import os
+import os, sys
 from keras.preprocessing.sequence import pad_sequences
 
-
+# Clase que se encarga de traducir oraciones
 class Traductor:
 
+    # Constructor
+    # Recibe los datasets con las oraciones del idioma fuente y del idioma objetivo
+    # Recibe el encoder y decoder del modelo
+    # Recibe los tokenizadores de cada idioma
+    # Recibe la longitud maxima de las oraciones del idioma fuente y del idioma objetivo
     def __init__(self, src_sentences, tgt_sentences, encoder, decoder, tgt_lang_tokenizer, src_lang_tokenizer, max_length_src, max_length_trg):
         self.src_sentences = src_sentences
         self.tgt_sentences = tgt_sentences
@@ -18,27 +23,36 @@ class Traductor:
         self.max_length_trg = max_length_trg
         self.units = 1024
 
-
-    def evaluate(self,sentence):
+    # Toma una oración de entrada, la preprocesa, 
+    # la convierte en un tensor usando el tokenizador del idioma fuente, 
+    # y realiza la traducción utilizando el modelo entrenado.
+    def translate(self,sentence):
+        # Preprocesar la oracion
         sentence = preprocess_text(sentence)
-        print(f"sentence: {sentence}")
+        print(f"\nsentence: {sentence}")
+
         inputs = []
         line = sentence.split(' ')
         for i in line:
-            print(f"i: {i}")
+            # Se agregan los tokens correspondientes a cada palabra
             inputs.append(self.src_lang_tokenizer.word_index[i])
+        # Se agrega padding para que todas las secuencias tengan la misma longitud
         inputs = pad_sequences([inputs],
                             maxlen=self.max_length_src,
                             padding='post')
+        # Se convierte la oracion a un tensor
         inputs = tf.convert_to_tensor(inputs)
 
         result = ''
+        # Se inicializa el hidden state del encoder
+        # se utiliza para que el decoder sepa donde empezar a traducir
         hidden = [tf.zeros((1, self.units))]
         enc_out, enc_hidden = self.encoder(inputs, hidden)
         dec_hidden = enc_hidden
+        # Se agrega el token de inicio de oracion al tensor
         dec_input = tf.expand_dims([self.tgt_lang_tokenizer.word_index['<sos>']], 0)
 
-        for t in range(self.max_length_trg):
+        for _ in range(self.max_length_trg):
             predictions, dec_hidden, attention_weights = self.decoder(dec_input,
                                                             dec_hidden,
                                                             enc_out)
@@ -46,22 +60,28 @@ class Traductor:
             predicted_id = tf.argmax(predictions[0]).numpy()
             result += self.tgt_lang_tokenizer.index_word[predicted_id] + ' '
 
-            if self.tgt_lang_tokenizer.index_word[predicted_id] == '<eos>':
+            if self.tgt_lang_tokenizer.index_word[predicted_id] == '<end>':
                 return result, sentence
             dec_input = tf.expand_dims([predicted_id], 0)
-
-        return result, sentence
-
-    def translate(self,sentence):
-        result, sentence = self.evaluate(sentence)
 
         print('Input:', sentence)
         print('Predicted Translation:', result)
 
 def main():
 
-    src_sentences = load_clean_sentences(f'english-spanish-5000-src.pkl')
-    tgt_sentences = load_clean_sentences(f'english-spanish-5000-tgt.pkl')
+    # python3 traductor.py target_language size
+
+    if len(sys.argv) != 3:
+        print('Usage: python3 traductor.py target_language size')
+        sys.exit(1)
+
+    if os.name == 'nt':
+        src_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-src.pkl')
+        tgt_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-tgt.pkl')
+    elif os.name == 'posix':
+        src_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-src.pkl')
+        tgt_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-tgt.pkl')
+    
 
     _,src_lang_tokenizer,max_length_src = tokenize(src_sentences)
     _,tgt_lang_tokenizer,max_length_trg = tokenize(tgt_sentences)
@@ -69,13 +89,16 @@ def main():
     src_vocab_size = len(src_lang_tokenizer.word_index)+1 
     tgt_vocab_size = len(tgt_lang_tokenizer.word_index)+1 
 
-    #Defining hyperparameters
     BATCH_SIZE = 64
     embedding_dim = 128
     units = 1024 
 
-    checkpoint_dir = './training_checkpoints'  
+    if os.name == 'nt':
+        checkpoint_dir = '../training_checkpoints'
+    elif os.name == 'posix':
+        checkpoint_dir = './training_checkpoints'
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")  
+    
 
     optimizer = tf.keras.optimizers.Adam()
     encoder = Encoder(src_vocab_size, embedding_dim, units, BATCH_SIZE) 
@@ -83,6 +106,7 @@ def main():
 
     checkpoint = tf.train.Checkpoint(optimizer=optimizer,encoder=encoder,decoder=decoder)
 
+    # Se restaura el ultimo modelo entrenado
     checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir)).expect_partial()
 
     trad = Traductor(src_sentences, 
@@ -93,20 +117,15 @@ def main():
                      src_lang_tokenizer, 
                      max_length_src, 
                      max_length_trg)
-    try:
-        trad.translate(u"hace mucho frío aquí.")
-    except:
-        print("No se puede traducir la oración")
-
-    try:
-        trad.translate(u'trata de averiguarlo.')
-    except:
-        print("No se puede traducir la oración")
-
-    try:
-        trad.translate(u'¿todavía están en casa?')
-    except:
-        print("No se puede traducir la oración")
+    
+    while True:
+        try:
+            oracion = input("Ingrese una oración o auxilio para salir: ")
+            if oracion == 'f':
+                break
+            trad.translate(oracion)
+        except:
+            print("No se puede traducir la oración")
 
     
 
