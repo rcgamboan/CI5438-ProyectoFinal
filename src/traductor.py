@@ -29,7 +29,7 @@ class Traductor:
     def translate(self,sentence):
         # Preprocesar la oracion
         sentence = preprocess_text(sentence)
-        
+
         inputs = []
         line = sentence.split(' ')
         for i in line:
@@ -75,11 +75,19 @@ def main():
         sys.exit(1)
 
     if os.name == 'nt':
-        src_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-src.pkl')
-        tgt_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-tgt.pkl')
+        try:
+            src_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-src.pkl')
+            tgt_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-tgt.pkl')
+        except:
+            print("No existe un conjunto de datos limpio para el idioma seleccionado con la cantidad de datos especificada")
+            sys.exit(1)
     elif os.name == 'posix':
-        src_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-src.pkl')
-        tgt_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-tgt.pkl')
+        try:
+            src_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-src.pkl')
+            tgt_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{sys.argv[2]}-tgt.pkl')
+        except:
+            print("No existe un conjunto de datos limpio para el idioma seleccionado con la cantidad de datos especificada")
+            sys.exit(1)
     
 
     _,src_lang_tokenizer,max_length_src = tokenize(src_sentences)
@@ -96,7 +104,6 @@ def main():
         checkpoint_dir = '../training_checkpoints'
     elif os.name == 'posix':
         checkpoint_dir = './training_checkpoints'
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")  
     
 
     optimizer = tf.keras.optimizers.Adam()
@@ -105,9 +112,12 @@ def main():
 
     checkpoint = tf.train.Checkpoint(optimizer=optimizer,encoder=encoder,decoder=decoder)
 
-    # Se restaura el ultimo modelo entrenado
-    checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir+sys.argv[1])).expect_partial()
-
+    try:
+        # Se restaura el ultimo modelo entrenado
+        checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir+sys.argv[1])).expect_partial()
+    except:
+        print("No existe un modelo entrenado para el idioma seleccionado con la cantidad de datos especificada")
+        sys.exit(1)
     print("Modelo cargado")
 
     trad = Traductor(src_sentences, 

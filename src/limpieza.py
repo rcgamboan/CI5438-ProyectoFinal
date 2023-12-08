@@ -10,7 +10,12 @@ from pickle import dump, load
 def obtener_pares(file_path,size):
 
     # Abrir el archivo y leerlo
-    text = open(file_path, mode='rt', encoding='UTF-8').read()
+    try:
+        text = open(file_path, mode='rt', encoding='UTF-8').read()
+    except:
+        print(f'Error al leer el archivo {file_path}')
+        sys.exit(1)
+
     lines = text.splitlines()
     pairs = []
     # Separar las oraciones en pares

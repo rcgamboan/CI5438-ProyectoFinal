@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 # Maneja varios parámetros para configurar y guardar el modelo
 # y parametros para el entrenamiento y la validación del modelo.
 class Model:
-
     # Constructor de la clase Model.
     # Recibe como parámetros checkpoint_dir (directorio donde se guardará el modelo),
     # checkpoint_prefix (prefijo del nombre del archivo del modelo),
@@ -154,7 +153,6 @@ class Model:
         print("Guardando modelo")
         self.save()
         print(f"Modelo guardado exitosamente con el prefijo {sys.argv[1]}")
- 
 
 # Clase Encoder que representa la parte codificadora del modelo. 
 # Define la arquitectura del codificador utilizando capas de Embedding y GRU (Gated Recurrent Unit).
@@ -275,11 +273,19 @@ def main():
 
     # Cargar los datos limpios, obtenidos previamente en la limpieza
     if os.name == 'nt':
-        src_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{size}-src.pkl')
-        tgt_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{size}-tgt.pkl')
+        try:
+            src_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{size}-src.pkl')
+            tgt_sentences = load_clean_sentences(f'../data/clean_data/eng-{sys.argv[1]}-{size}-tgt.pkl')
+        except:
+            print("No existe un conjunto de datos limpio para el idioma seleccionado con la cantidad de datos especificada")
+            sys.exit(1)
     elif os.name == 'posix':
-        src_sentences = load_clean_sentences(f'./data/clean_data/english-{sys.argv[1]}-{size}-src.pkl')
-        tgt_sentences = load_clean_sentences(f'./data/clean_data/english-{sys.argv[1]}-{size}-tgt.pkl')
+        try:
+            src_sentences = load_clean_sentences(f'./data/clean_data/english-{sys.argv[1]}-{size}-src.pkl')
+            tgt_sentences = load_clean_sentences(f'./data/clean_data/english-{sys.argv[1]}-{size}-tgt.pkl')
+        except:
+            print("No existe un conjunto de datos limpio para el idioma seleccionado con la cantidad de datos especificada")
+            sys.exit(1)
 
     # tokenizar las oraciones
     # para poder usarlas en el model a entrenar
