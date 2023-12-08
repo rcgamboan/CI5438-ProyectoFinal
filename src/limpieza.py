@@ -98,8 +98,13 @@ def main():
     tgt_sentences = [preprocess_text(w) for w in target]
 
     # Guardar pares limpios en su archivo correspondiente
-    save_clean_data(src_sentences,f'./clean_data/eng-{sys.argv[1]}-{size}-src.pkl')
-    save_clean_data(tgt_sentences,f'./clean_data/eng-{sys.argv[1]}-{size}-tgt.pkl')
+    if os.name == 'nt':
+        save_clean_data(src_sentences,f'../data/clean_data/eng-{sys.argv[1]}-{size}-src.pkl')
+        save_clean_data(tgt_sentences,f'../data/clean_data/eng-{sys.argv[1]}-{size}-tgt.pkl')
+    elif os.name == 'posix':
+        save_clean_data(src_sentences,f'./data/clean_data/eng-{sys.argv[1]}-{size}-src.pkl')
+        save_clean_data(tgt_sentences,f'./data/clean_data/eng-{sys.argv[1]}-{size}-tgt.pkl')
+    
 
     
 
