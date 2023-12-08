@@ -19,6 +19,9 @@ class Model:
     # src_lang_tokenizer (tokenizador del lenguaje fuente).
     def __init__(self, checkpoint_dir, checkpoint_prefix, encoder, decoder, optimizer, loss_object, BATCH_SIZE, tgt_lang_tokenizer, src_lang_tokenizer):
         self.checkpoint = tf.train.Checkpoint(optimizer=optimizer, encoder=encoder, decoder=decoder)
+        self.encoder = encoder
+        self.decoder = decoder
+        self.optimizer = optimizer
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_prefix = checkpoint_prefix
         self.loss_object = loss_object
@@ -110,8 +113,8 @@ class Model:
         return batch_loss 
 
     # Esta función realiza el entrenamiento y la validación del modelo.
-    def train_and_validate(self, train_dataset, test_dataset, steps_per_epoch, val_steps_per_epoch,  iters=10):
-        print("Training started...")
+    def train_and_validate(self, train_dataset, test_dataset, steps_per_epoch, val_steps_per_epoch,  iters=10, show_loss = False):
+        print(f"Entrenando modelo por {iters} iteraciones")
 
         # Bucle para entrenar y validar el modelo
         for iter in range(iters):
@@ -127,27 +130,30 @@ class Model:
             total_validation_loss = 0
 
             # Bucle de entrenamiento
-            for (batch, (inputs, targets)) in enumerate(train_dataset.take(steps_per_epoch)):
+            for inputs, targets in train_dataset.take(steps_per_epoch):
                 batch_loss = self.train(inputs, targets, enc_hidden)
                 total_train_loss += batch_loss 
 
-                # En caso que se tengan mas de 100 lotes, se imprime el progreso cada 100 lotes
-                if batch % 100 == 0:
-                    print(f"Training batch {batch} Loss {batch_loss.numpy():.4f}")
-
             # Bucle de validación
-            for (batch, (inputs, targets)) in enumerate(test_dataset.take(val_steps_per_epoch)):    
+            for inputs, targets in test_dataset.take(val_steps_per_epoch):    
                 val_batch_loss = self.validate(inputs, targets, enc_hidden)
                 total_validation_loss += val_batch_loss 
             
             iter_time = time.time() - start
             self.training_time += iter_time
-            print(f'Time taken for iter {iter} : {iter_time} sec\n')
+            print(f'\nTiempo en iteracion {iter} : {iter_time:.4f} sec')
+            if show_loss:
+                # Conjunto de datos muy pequeño para entrenamiento
+                if steps_per_epoch != 0:
+                    print(f'Perdida en entrenamiento: {(total_train_loss / steps_per_epoch):.4f}')
+                # Conjunto de datos muy pequeño para validacion
+                if val_steps_per_epoch != 0:
+                    print(f'Perdida en validacion: {(total_validation_loss / val_steps_per_epoch):.4f}')
         
-        print("Model trained successfully!")
-        print("Saving the model...")
+        print("Modelo entrenado exitosamente!")
+        print("Guardando modelo")
         self.save()
-        print("Model saved successfully!")
+        print(f"Modelo guardado exitosamente con el prefijo {sys.argv[1]}")
  
 
 # Clase Encoder que representa la parte codificadora del modelo. 
@@ -349,7 +355,7 @@ def main():
         checkpoint_dir = '../training_checkpoints'
     elif os.name == 'posix':
         checkpoint_dir = './training_checkpoints'
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")  
+    checkpoint_prefix = os.path.join(checkpoint_dir, sys.argv[1])  
     checkpoint = Model(checkpoint_dir, 
                                    checkpoint_prefix,
                                    encoder, 

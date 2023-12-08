@@ -29,8 +29,7 @@ class Traductor:
     def translate(self,sentence):
         # Preprocesar la oracion
         sentence = preprocess_text(sentence)
-        print(f"\nsentence: {sentence}")
-
+        
         inputs = []
         line = sentence.split(' ')
         for i in line:
@@ -107,7 +106,9 @@ def main():
     checkpoint = tf.train.Checkpoint(optimizer=optimizer,encoder=encoder,decoder=decoder)
 
     # Se restaura el ultimo modelo entrenado
-    checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir)).expect_partial()
+    checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir+sys.argv[1])).expect_partial()
+
+    print("Modelo cargado")
 
     trad = Traductor(src_sentences, 
                      tgt_sentences, 
@@ -120,7 +121,7 @@ def main():
     
     while True:
         try:
-            oracion = input("Ingrese una oración o auxilio para salir: ")
+            oracion = input("\nIngrese una oración o f para salir: ")
             if oracion == 'f':
                 break
             trad.translate(oracion)
