@@ -30,11 +30,11 @@ class Traductor:
         # Preprocesar la oracion
         sentence = preprocess_text(sentence)
 
+        # Se tokeniza la oracion
         inputs = []
-        line = sentence.split(' ')
-        for i in line:
-            # Se agregan los tokens correspondientes a cada palabra
-            inputs.append(self.src_lang_tokenizer.word_index[i])
+        for word in sentence.split(' '):
+            inputs.append(self.src_lang_tokenizer.word_index[word])
+
         # Se agrega padding para que todas las secuencias tengan la misma longitud
         inputs = pad_sequences([inputs],
                             maxlen=self.max_length_src,
@@ -49,7 +49,7 @@ class Traductor:
         enc_out, enc_hidden = self.encoder(inputs, hidden)
         dec_hidden = enc_hidden
         # Se agrega el token de inicio de oracion al tensor
-        dec_input = tf.expand_dims([self.tgt_lang_tokenizer.word_index['<sos>']], 0)
+        dec_input = tf.expand_dims([self.tgt_lang_tokenizer.word_index['<start>']], 0)
 
         for _ in range(self.max_length_trg):
             predictions, dec_hidden, attention_weights = self.decoder(dec_input,
@@ -61,6 +61,7 @@ class Traductor:
 
             if self.tgt_lang_tokenizer.index_word[predicted_id] == '<end>':
                 return result, sentence
+                # break
             dec_input = tf.expand_dims([predicted_id], 0)
 
         print('Input:', sentence)
@@ -91,7 +92,11 @@ def main():
     
 
     _,src_lang_tokenizer,max_length_src = tokenize(src_sentences)
+    # print("source")
+    # print(src_lang_tokenizer.word_index)
     _,tgt_lang_tokenizer,max_length_trg = tokenize(tgt_sentences)
+    # print("target")
+    # print(tgt_lang_tokenizer.word_index)
 
     src_vocab_size = len(src_lang_tokenizer.word_index)+1 
     tgt_vocab_size = len(tgt_lang_tokenizer.word_index)+1 
@@ -114,7 +119,9 @@ def main():
 
     try:
         # Se restaura el ultimo modelo entrenado
-        checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir+sys.argv[1])).expect_partial()
+        # checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir+sys.argv[1])).expect_partial()
+        checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir)).expect_partial()
+        # print(checkpoint_dir+sys.argv[1])
     except:
         print("No existe un modelo entrenado para el idioma seleccionado con la cantidad de datos especificada")
         sys.exit(1)
@@ -129,6 +136,7 @@ def main():
                      max_length_src, 
                      max_length_trg)
     
+    # trad.translate(u'Time stopped.')
     while True:
         try:
             oracion = input("\nIngrese una oración o f para salir: ")
