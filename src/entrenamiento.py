@@ -281,8 +281,8 @@ def main():
             sys.exit(1)
     elif os.name == 'posix':
         try:
-            src_sentences = load_clean_sentences(f'./data/clean_data/english-{sys.argv[1]}-{size}-src.pkl')
-            tgt_sentences = load_clean_sentences(f'./data/clean_data/english-{sys.argv[1]}-{size}-tgt.pkl')
+            src_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{size}-src.pkl')
+            tgt_sentences = load_clean_sentences(f'./data/clean_data/eng-{sys.argv[1]}-{size}-tgt.pkl')
         except:
             print("No existe un conjunto de datos limpio para el idioma seleccionado con la cantidad de datos especificada")
             sys.exit(1)
