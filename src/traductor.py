@@ -64,8 +64,7 @@ class Traductor:
                 # break
             dec_input = tf.expand_dims([predicted_id], 0)
 
-        print('Input:', sentence)
-        print('Predicted Translation:', result)
+        return result
 
 def main():
 
@@ -136,15 +135,16 @@ def main():
                      max_length_src, 
                      max_length_trg)
     
-    # trad.translate(u'Time stopped.')
-    while True:
+    print(trad.translate(u'Time stopped.')[0].split('<end>')[0])
+    
+    """while True:
         try:
             oracion = input("\nIngrese una oración o f para salir: ")
             if oracion == 'f':
                 break
-            trad.translate(oracion)
+            print(trad.translate(oracion)[0].split('<end>')[0])
         except:
-            print("No se puede traducir la oración")
+            print("No se puede traducir la oración")"""
 
     
 
