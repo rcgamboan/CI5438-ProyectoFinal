@@ -95,8 +95,8 @@ def main():
     pares = obtener_pares(filename,size)
 
     # Separar las oraciones del idioma fuente y del idioma objetivo
-    source = np.array([source for target, source in pares])  
-    target = np.array([target for target, source in pares])
+    source = np.array([source for source, target in pares])  
+    target = np.array([target for source, target in pares])
 
     # Preprocesar las oraciones
     src_sentences = [preprocess_text(w) for w in source]
